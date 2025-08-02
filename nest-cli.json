@@ -1,7 +1,44 @@
 {
   "$schema": "https://json.schemastore.org/nest-cli",
   "collection": "@nestjs/schematics",
-  "sourceRoot": "src",
+  "monorepo": true,
+  "root": "apps",
+  "sourceRoot": "apps",
+  "projects": {
+    "orchestrator-service": {
+      "type": "application",
+      "root": "apps/orchestrator-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/orchestrator-service/src"
+    },
+    "fixer-service": {
+      "type": "application",
+      "root": "apps/fixer-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/fixer-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/fixer-service/tsconfig.app.json"
+      }
+    },
+    "exchangerate-service": {
+      "type": "application",
+      "root": "apps/exchangerate-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/exchangerate-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/exchangerate-service/tsconfig.app.json"
+      }
+    },
+    "floatrates-service": {
+      "type": "application",
+      "root": "apps/floatrates-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/floatrates-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/floatrates-service/tsconfig.app.json"
+      }
+    }
+  },
   "compilerOptions": {
     "deleteOutDir": true
   }
