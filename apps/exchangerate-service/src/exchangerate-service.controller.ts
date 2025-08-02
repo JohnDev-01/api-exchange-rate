@@ -1,12 +1,26 @@
-import { Controller, Get } from '@nestjs/common';
-import { ExchangerateServiceService } from './exchangerate-service.service';
+import { Controller } from '@nestjs/common';
+import { MessagePattern, Payload } from '@nestjs/microservices';
+import { ExchangerateService } from './exchangerate-service.service';
 
 @Controller()
 export class ExchangerateServiceController {
-  constructor(private readonly exchangerateServiceService: ExchangerateServiceService) {}
+  constructor(
+    private readonly exchangerateService: ExchangerateService,
+  ) {}
 
-  @Get()
-  getHello(): string {
-    return this.exchangerateServiceService.getHello();
+  @MessagePattern({ cmd: 'convert' })
+  async handleConvert(
+    @Payload()
+    payload: {
+      from: string;
+      to: string;
+      amount: number;
+    },
+  ) {
+    return this.exchangerateService.convert(
+      payload.from,
+      payload.to,
+      payload.amount,
+    );
   }
 }

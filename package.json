@@ -6,7 +6,11 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "build": "nest build",
+    "build": "npm run build:fixer && npm run build:exchangerate && npm run build:floatrates && npm run build:orchestrator",
+    "build:fixer": "nest build fixer-service",
+    "build:exchangerate": "nest build exchangerate-service",
+    "build:floatrates": "nest build floatrates-service",
+    "build:orchestrator": "nest build orchestrator-service",
     "format": "prettier --write \"apps/**/*.ts\" \"libs/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",

@@ -1,0 +1,41 @@
+services:
+  orchestrator-service:
+    build:
+      context: .
+      dockerfile: apps/orchestrator-service/Dockerfile
+    ports:
+      - '3000:3000'
+    environment:
+      FIXER_HOST: fixer-service
+      FIXER_PORT: 3001
+      EXCHANGERATE_HOST: exchangerate-service
+      EXCHANGERATE_PORT: 3002
+      FLOATRATES_HOST: floatrates-service
+      FLOATRATES_PORT: 3003
+    depends_on:
+      - fixer-service
+      - exchangerate-service
+      - floatrates-service
+
+  fixer-service:
+    build:
+      context: .
+      dockerfile: apps/fixer-service/Dockerfile
+    env_file:
+      - .env
+    ports:
+      - '3001:3001'
+
+  exchangerate-service:
+    build:
+      context: .
+      dockerfile: apps/exchangerate-service/Dockerfile
+    ports:
+      - '3002:3002'
+
+  floatrates-service:
+    build:
+      context: .
+      dockerfile: apps/floatrates-service/Dockerfile
+    ports:
+      - '3003:3003'

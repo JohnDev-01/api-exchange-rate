@@ -9,7 +9,10 @@
       "type": "application",
       "root": "apps/orchestrator-service",
       "entryFile": "main",
-      "sourceRoot": "apps/orchestrator-service/src"
+      "sourceRoot": "apps/orchestrator-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/orchestrator-service/tsconfig.build.json"
+      }
     },
     "fixer-service": {
       "type": "application",

@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
 import { FixerServiceController } from './fixer-service.controller';
-import { FixerServiceService } from './fixer-service.service';
+import { FixerService } from './fixer-service.service';
 
 @Module({
   imports: [],
   controllers: [FixerServiceController],
-  providers: [FixerServiceService],
+  providers: [FixerService],
 })
 export class FixerServiceModule {}
