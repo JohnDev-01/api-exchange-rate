@@ -39,10 +39,11 @@ export class FixerService {
               convertedAmount: rate * amount,
             };
           } catch (error) {
-            Logger.log(
+            Logger.error(
               `El servicio FixerService ha fallado. Mas detalles: ${error}`,
               FixerService,
             );
+            throw error;
           }
         },
         {
@@ -57,10 +58,11 @@ export class FixerService {
         },
       );
     } catch (error) {
-      Logger.log(
+      Logger.error(
         `El servicio FixerService ha fallado. Mas detalles: ${error}`,
         FixerService,
       );
+      throw new Error(`FixerService: ${error.message}`);
     }
   }
 }
