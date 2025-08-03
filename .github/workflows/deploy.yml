@@ -1,0 +1,48 @@
+name: CI/CD to AWS Fargate
+
+on:
+  push:
+    branches: [ main ]
+
+env:
+  AWS_REGION: us-east-2
+  CLUSTER_NAME: technical-test-cluster
+  SERVICES: "fixer-service exchangerate-service floatrates-service orchestrator-service"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to ECR
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build, tag and push images
+        run: |
+          set -e
+          for SERVICE in $SERVICES; do
+            REPO_URI=$(aws ecr describe-repositories --repository-names "$SERVICE" --query "repositories[0].repositoryUri" --output text)
+            echo "=== Building $SERVICE ==="
+            docker build -f apps/$SERVICE/Dockerfile -t "$SERVICE:latest" .
+            docker tag "$SERVICE:latest" "$REPO_URI:latest"
+            echo "Pushing $SERVICE to $REPO_URI"
+            docker push "$REPO_URI:latest"
+          done
+        shell: bash
+
+      - name: Force new deployment of ECS services
+        run: |
+          for SVC in $SERVICES; do
+            echo "Forcing redeploy of $SVC"
+            aws ecs update-service --cluster $CLUSTER_NAME --service $SVC --force-new-deployment
+          done
+        shell: bash
