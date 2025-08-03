@@ -2,6 +2,8 @@
 
 Este proyecto consiste en una API desarrollada con **NestJS** y desplegada automáticamente en **AWS Fargate** utilizando GitHub Actions. La solución está compuesta por múltiples microservicios independientes que consultan diferentes proveedores de tasas de cambio y un **orchestrator** que coordina las respuestas.
 
+> El sistema implementa una política de reintento automática para garantizar tolerancia a fallos: si un proveedor no responde o falla, se intenta nuevamente antes de descartar su resultado.
+
 ---
 
 ## Endpoint de Producción
@@ -40,6 +42,8 @@ http://technical-test-alb-321350010.us-east-2.elb.amazonaws.com/exchange/bestExc
 - **Orchestrator Service**: consume los tres servicios anteriores vía TCP, selecciona la mejor tasa y responde al cliente.
 
 Cada microservicio está desacoplado y preparado para desplegarse de forma independiente en AWS Fargate.
+
+> En caso de error o inestabilidad en alguno de los servicios, el orchestrator realiza múltiples reintentos automáticos antes de ignorar su resultado. Esta política mejora la resiliencia y reduce la posibilidad de fallos ante respuestas inválidas.
 
 ---
 
