@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ExchangeController } from './exchange.controller';
 import { ExchangeService } from './exchange.service';
+import { GetBestExchangeDto } from './dto/get-best-exchange.dto';
 
 describe('ExchangeController', () => {
   let controller: ExchangeController;
@@ -23,20 +24,28 @@ describe('ExchangeController', () => {
     service = module.get<ExchangeService>(ExchangeService);
   });
 
-  it('debe delegar la logica al servicio', async () => {
+  it('debe delegar la logica al servicio con DTO valido', async () => {
+    const mockDto: GetBestExchangeDto = {
+      sourceCurrency: 'USD',
+      targetCurrency: 'DOP',
+      amount: 100,
+    };
+
     const mockResult = {
       provider: 'Fixer',
       rate: 58.5,
       convertedAmount: 5850,
     };
 
-    jest
-      .spyOn(service, 'getBestRate')
-      .mockResolvedValueOnce(mockResult);
+    jest.spyOn(service, 'getBestRate').mockResolvedValueOnce(mockResult);
 
-    const response = await controller.getBestExchange('USD', 'DOP', '100');
+    const response = await controller.getBestExchange(mockDto);
 
-    expect(service.getBestRate).toHaveBeenCalledWith('USD', 'DOP', 100);
+    expect(service.getBestRate).toHaveBeenCalledWith(
+      mockDto.sourceCurrency,
+      mockDto.targetCurrency,
+      mockDto.amount,
+    );
     expect(response).toEqual(mockResult);
   });
 });
