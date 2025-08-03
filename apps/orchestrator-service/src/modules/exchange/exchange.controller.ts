@@ -1,5 +1,6 @@
-import { Controller, Get, Logger, Query } from '@nestjs/common';
+import { Controller, Get, Logger, Query, ValidationPipe } from '@nestjs/common';
 import { ExchangeService } from './exchange.service';
+import { GetBestExchangeDto } from './dto/get-best-exchange.dto';
 
 @Controller('exchange')
 export class ExchangeController {
@@ -7,17 +8,18 @@ export class ExchangeController {
 
   @Get('bestExchange')
   async getBestExchange(
-    @Query('sourceCurrency') sourceCurrency: string,
-    @Query('targetCurrency') targetCurrency: string,
-    @Query('amount') amount: string,
+    @Query(new ValidationPipe({ transform: true }))
+    query: GetBestExchangeDto,
   ) {
     Logger.log('Call bestExchange endpoint');
+    const { sourceCurrency, targetCurrency, amount } = query;
     return this.exchangeService.getBestRate(
       sourceCurrency,
       targetCurrency,
-      Number(amount),
+      amount,
     );
   }
+
   @Get('health')
   healthCheck() {
     return { status: 'ok' };
