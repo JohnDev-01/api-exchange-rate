@@ -11,6 +11,14 @@ export class ExchangeController {
     @Query('targetCurrency') targetCurrency: string,
     @Query('amount') amount: string,
   ) {
-    return this.exchangeService.getBestRate(sourceCurrency, targetCurrency, Number(amount));
+    return this.exchangeService.getBestRate(
+      sourceCurrency,
+      targetCurrency,
+      Number(amount),
+    );
+  }
+  @Get('health')
+  healthCheck() {
+    return { status: 'ok' };
   }
 }
