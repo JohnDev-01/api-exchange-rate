@@ -3,28 +3,49 @@ import { ClientProxy } from '@nestjs/microservices';
 
 @Injectable()
 export class ExchangeService {
+  private readonly logger = new Logger(ExchangeService.name);
+
   constructor(
     @Inject('FIXER_SERVICE') private fixerClient: ClientProxy,
     @Inject('EXCHANGERATE_SERVICE') private exchangerateClient: ClientProxy,
     @Inject('FLOATRATES_SERVICE') private floatratesClient: ClientProxy,
   ) {}
 
-  async getFixerRate(from: string, to: string, amount: number) {
-    return this.fixerClient
-      .send({ cmd: 'convert' }, { from, to, amount })
-      .toPromise();
+  private async sendRequest(
+    client: ClientProxy,
+    provider: string,
+    from: string,
+    to: string,
+    amount: number,
+  ) {
+    try {
+      this.logger.log(`Enviando solicitud a ${provider}...`);
+      const result = await client
+        .send({ cmd: 'convert' }, { from, to, amount })
+        .toPromise();
+
+      if (
+        !result ||
+        typeof result.convertedAmount !== 'number' ||
+        typeof result.rate !== 'number'
+      ) {
+        this.logger.warn(`Respuesta invalida desde ${provider}`);
+        return this.fallback(provider);
+      }
+
+      return result;
+    } catch (error) {
+      this.logger.error(`Error desde ${provider}: ${error.message}`);
+      return this.fallback(provider);
+    }
   }
 
-  async getExchangeRate(from: string, to: string, amount: number) {
-    return this.exchangerateClient
-      .send({ cmd: 'convert' }, { from, to, amount })
-      .toPromise();
-  }
-
-  async getFloatRate(from: string, to: string, amount: number) {
-    return this.floatratesClient
-      .send({ cmd: 'convert' }, { from, to, amount })
-      .toPromise();
+  private fallback(provider: string) {
+    return {
+      provider,
+      rate: 0,
+      convertedAmount: 0,
+    };
   }
 
   async getBestRate(
@@ -32,19 +53,19 @@ export class ExchangeService {
     targetCurrency: string,
     amount: number,
   ) {
-    Logger.log('Consultando tasas de diferentes servicios');
-    const results = await Promise.allSettled([
-      this.getFixerRate(sourceCurrency, targetCurrency, amount),
-      this.getExchangeRate(sourceCurrency, targetCurrency, amount),
-      this.getFloatRate(sourceCurrency, targetCurrency, amount),
+    this.logger.log('Consultando tasas de diferentes servicios...');
+
+    const results = await Promise.all([
+      this.sendRequest(this.fixerClient, 'Fixer', sourceCurrency, targetCurrency, amount),
+      this.sendRequest(this.exchangerateClient, 'ExchangeRate-API', sourceCurrency, targetCurrency, amount),
+      this.sendRequest(this.floatratesClient, 'FloatRates', sourceCurrency, targetCurrency, amount),
     ]);
 
-    const successful = results
-      .filter((r): r is PromiseFulfilledResult<any> => r.status === 'fulfilled')
-      .map((r) => r.value);
+    // Si todas fallaron (convertedAmount = 0), retorna la primera
+    const best = results
+      .filter(r => r.convertedAmount > 0)
+      .sort((a, b) => b.convertedAmount - a.convertedAmount)[0];
 
-    if (successful.length === 0) throw new Error('No hay tasas disponibles');
-
-    return successful.sort((a, b) => a.convertedAmount - b.convertedAmount)[0];
+    return best || this.fallback('Ninguno');
   }
 }

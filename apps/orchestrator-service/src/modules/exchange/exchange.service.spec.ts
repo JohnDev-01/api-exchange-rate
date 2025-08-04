@@ -1,64 +1,77 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { ExchangeService } from './exchange.service';
 import { ClientProxy } from '@nestjs/microservices';
 
 describe('ExchangeService', () => {
   let service: ExchangeService;
+  let fixerClient: jest.Mocked<ClientProxy>;
+  let exchangerateClient: jest.Mocked<ClientProxy>;
+  let floatratesClient: jest.Mocked<ClientProxy>;
 
-  const mockClient = () => ({
-    send: jest.fn(() => ({
-      toPromise: jest.fn(),
-    })),
+  beforeEach(() => {
+    const makeMockClient = () => ({
+      send: jest.fn(),
+    }) as unknown as jest.Mocked<ClientProxy>;
+
+    fixerClient = makeMockClient();
+    exchangerateClient = makeMockClient();
+    floatratesClient = makeMockClient();
+
+    service = new ExchangeService(
+      fixerClient,
+      exchangerateClient,
+      floatratesClient,
+    );
   });
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        ExchangeService,
-        { provide: 'FIXER_SERVICE', useFactory: mockClient },
-        { provide: 'EXCHANGERATE_SERVICE', useFactory: mockClient },
-        { provide: 'FLOATRATES_SERVICE', useFactory: mockClient },
-      ],
-    }).compile();
+  function mockToPromise(
+    client: jest.Mocked<ClientProxy>,
+    resultado: any,
+  ) {
+    if (resultado instanceof Error) {
+      client.send.mockReturnValue({
+        toPromise: () => Promise.reject(resultado),
+      } as any);
+    } else {
+      client.send.mockReturnValue({
+        toPromise: () => Promise.resolve(resultado),
+      } as any);
+    }
+  }
 
-    service = module.get<ExchangeService>(ExchangeService);
+  it('debe seleccionar la mejor tasa de los proveedores exitosos', async () => {
+    mockToPromise(fixerClient, { provider: 'Fixer', rate: 2, convertedAmount: 200 });
+    mockToPromise(exchangerateClient, { provider: 'ExchangeRate-API', rate: 3, convertedAmount: 300 });
+    mockToPromise(floatratesClient, { provider: 'FloatRates', rate: 1, convertedAmount: 100 });
+
+    const mejor = await service.getBestRate('USD', 'EUR', 100);
+    expect(mejor).toEqual({ provider: 'ExchangeRate-API', rate: 3, convertedAmount: 300 });
   });
 
-  it('debe retornar la mejor tasa de entre los servicios', async () => {
-    jest.spyOn(service, 'getFixerRate').mockResolvedValue({
-      provider: 'Fixer',
-      rate: 58.5,
-      convertedAmount: 5850,
-    });
+  it('debe continuar si un proveedor falla y escoger el mejor entre los restantes', async () => {
+    mockToPromise(fixerClient, new Error('fuera de servicio'));
+    mockToPromise(exchangerateClient, { provider: 'ExchangeRate-API', rate: 5, convertedAmount: 500 });
+    mockToPromise(floatratesClient, { provider: 'FloatRates', rate: 4, convertedAmount: 400 });
 
-    jest.spyOn(service, 'getExchangeRate').mockResolvedValue({
-      provider: 'ExchangeRate-API',
-      rate: 59,
-      convertedAmount: 5900,
-    });
-
-    jest.spyOn(service, 'getFloatRate').mockResolvedValue({
-      provider: 'FloatRates',
-      rate: 57.2,
-      convertedAmount: 5720,
-    });
-
-    const result = await service.getBestRate('USD', 'DOP', 100);
-
-    expect(result).toEqual({
-      provider: 'FloatRates',
-      rate: 57.2,
-      convertedAmount: 5720,
-    });
+    const mejor = await service.getBestRate('USD', 'GBP', 100);
+    expect(mejor).toEqual({ provider: 'ExchangeRate-API', rate: 5, convertedAmount: 500 });
+    expect(fixerClient.send).toHaveBeenCalled();
   });
 
-  it('debe lanzar un error si ningun proveedor responde', async () => {
-    jest.spyOn(service, 'getFixerRate').mockRejectedValue(new Error());
-    jest.spyOn(service, 'getExchangeRate').mockRejectedValue(new Error());
-    jest.spyOn(service, 'getFloatRate').mockRejectedValue(new Error());
+  it('debe devolver un fallback si todos los proveedores fallan', async () => {
+    mockToPromise(fixerClient, new Error('fallo'));
+    mockToPromise(exchangerateClient, new Error('fallo'));
+    mockToPromise(floatratesClient, new Error('fallo'));
 
-    await expect(
-      service.getBestRate('USD', 'DOP', 100),
-    ).rejects.toThrow('No hay tasas disponibles');
+    const mejor = await service.getBestRate('USD', 'JPY', 100);
+    expect(mejor).toEqual({ provider: 'Ninguno', rate: 0, convertedAmount: 0 });
+  });
+
+  it('debe aplicar fallback si un proveedor responde con datos inválidos', async () => {
+    mockToPromise(fixerClient, { foo: 'bar' });
+    mockToPromise(exchangerateClient, { provider: 'ER', rate: 0, convertedAmount: 0 });
+    mockToPromise(floatratesClient, { provider: 'FloatRates', rate: 1, convertedAmount: 100 });
+
+    const mejor = await service.getBestRate('USD', 'CAD', 200);
+    expect(mejor).toEqual({ provider: 'FloatRates', rate: 1, convertedAmount: 100 });
   });
 });
