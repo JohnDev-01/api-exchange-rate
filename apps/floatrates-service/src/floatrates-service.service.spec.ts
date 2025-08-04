@@ -17,9 +17,7 @@ describe('FloatratesService', () => {
   });
 
   it('debe retornar el resultado correctamente', async () => {
-    (axios.get as jest.Mock).mockResolvedValue({
-      data: '<xml></xml>',
-    });
+    (axios.get as jest.Mock).mockResolvedValue({ data: '<xml></xml>' });
 
     (parseStringPromise as jest.Mock).mockResolvedValue({
       item: [
@@ -39,25 +37,21 @@ describe('FloatratesService', () => {
     });
   });
 
-  it('debe lanzar error si no hay tasas en el XML', async () => {
-    (axios.get as jest.Mock).mockResolvedValue({
-      data: '<xml></xml>',
-    });
-
+  it('debe retornar fallback si no hay tasas en el XML', async () => {
+    (axios.get as jest.Mock).mockResolvedValue({ data: '<xml></xml>' });
     (parseStringPromise as jest.Mock).mockResolvedValue({});
 
-    await expect(
-      service.convert('USD', 'DOP', 100),
-    ).rejects.toThrowError(
-      /FloatratesService fallo al convertir de USD a DOP/,
-    );
+    const result = await service.convert('USD', 'DOP', 100);
+
+    expect(result).toEqual({
+      provider: 'FloatRates',
+      rate: 0,
+      convertedAmount: 0,
+    });
   });
 
-  it('debe lanzar error si no encuentra la moneda de destino', async () => {
-    (axios.get as jest.Mock).mockResolvedValue({
-      data: '<xml></xml>',
-    });
-
+  it('debe retornar fallback si no encuentra la moneda de destino', async () => {
+    (axios.get as jest.Mock).mockResolvedValue({ data: '<xml></xml>' });
     (parseStringPromise as jest.Mock).mockResolvedValue({
       item: [
         {
@@ -67,18 +61,17 @@ describe('FloatratesService', () => {
       ],
     });
 
-    await expect(
-      service.convert('USD', 'DOP', 100),
-    ).rejects.toThrowError(
-      /FloatratesService fallo al convertir de USD a DOP/,
-    );
+    const result = await service.convert('USD', 'DOP', 100);
+
+    expect(result).toEqual({
+      provider: 'FloatRates',
+      rate: 0,
+      convertedAmount: 0,
+    });
   });
 
-  it('debe lanzar error si la tasa es inválida', async () => {
-    (axios.get as jest.Mock).mockResolvedValue({
-      data: '<xml></xml>',
-    });
-
+  it('debe retornar fallback si la tasa es invalida', async () => {
+    (axios.get as jest.Mock).mockResolvedValue({ data: '<xml></xml>' });
     (parseStringPromise as jest.Mock).mockResolvedValue({
       item: [
         {
@@ -88,20 +81,24 @@ describe('FloatratesService', () => {
       ],
     });
 
-    await expect(
-      service.convert('USD', 'DOP', 100),
-    ).rejects.toThrowError(
-      /FloatratesService fallo al convertir de USD a DOP/,
-    );
+    const result = await service.convert('USD', 'DOP', 100);
+
+    expect(result).toEqual({
+      provider: 'FloatRates',
+      rate: 0,
+      convertedAmount: 0,
+    });
   });
 
-  it('debe manejar errores de red o de axios correctamente', async () => {
+  it('debe retornar fallback si axios lanza una excepcion', async () => {
     (axios.get as jest.Mock).mockRejectedValue(new Error('Network error'));
 
-    await expect(
-      service.convert('USD', 'DOP', 100),
-    ).rejects.toThrowError(
-      /FloatratesService fallo al convertir de USD a DOP/,
-    );
+    const result = await service.convert('USD', 'DOP', 100);
+
+    expect(result).toEqual({
+      provider: 'FloatRates',
+      rate: 0,
+      convertedAmount: 0,
+    });
   });
 });
