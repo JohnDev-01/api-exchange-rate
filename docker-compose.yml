@@ -24,18 +24,25 @@ services:
     env_file:
       - .env
     ports:
-      - '3001:3001'
+      - '3001:3001' # TCP microservice
+      - '3011:3011' # HTTP para pruebas (Postman)
 
   exchangerate-service:
     build:
       context: .
       dockerfile: apps/exchangerate-service/Dockerfile
+    env_file:
+      - .env
     ports:
-      - '3002:3002'
+      - '3002:3002' # TCP microservice
+      - '3012:3012' # HTTP para pruebas (Postman)
 
   floatrates-service:
     build:
       context: .
       dockerfile: apps/floatrates-service/Dockerfile
+    env_file:
+      - .env
     ports:
-      - '3003:3003'
+      - '3003:3003' # TCP microservice
+      - '3013:3013' # HTTP para pruebas (Postman)
