@@ -33,7 +33,7 @@ describe('ExchangerateService', () => {
     });
   });
 
-  it('debe lanzar error si la API falla o no tiene tasa valida', async () => {
+  it('debe retornar fallback si la API no retorna tasa valida', async () => {
     const mockResponse = {
       data: {
         result: 'error',
@@ -44,19 +44,25 @@ describe('ExchangerateService', () => {
     (retry as jest.MockedFunction<any>).mockImplementation(async (fn) => fn());
     (axios.get as jest.MockedFunction<any>).mockResolvedValue(mockResponse);
 
-    await expect(service.convert('USD', 'DOP', 100)).rejects.toThrowError(
-      'ExchangerateService fallo al convertir de USD a DOP',
-    );
+    const result = await service.convert('USD', 'DOP', 100);
+
+    expect(result).toEqual({
+      provider: 'ExchangeRate-API',
+      rate: 0,
+      convertedAmount: 0,
+    });
   });
 
-  it('debe lanzar error si axios lanza excepcion', async () => {
+  it('debe retornar fallback si axios lanza una excepcion', async () => {
     (retry as jest.MockedFunction<any>).mockImplementation(async (fn) => fn());
-    (axios.get as jest.MockedFunction<any>).mockRejectedValue(
-      new Error('Network Error'),
-    );
+    (axios.get as jest.MockedFunction<any>).mockRejectedValue(new Error('Network Error'));
 
-    await expect(service.convert('USD', 'DOP', 100)).rejects.toThrowError(
-      'ExchangerateService fallo al convertir de USD a DOP',
-    );
+    const result = await service.convert('USD', 'DOP', 100);
+
+    expect(result).toEqual({
+      provider: 'ExchangeRate-API',
+      rate: 0,
+      convertedAmount: 0,
+    });
   });
 });
