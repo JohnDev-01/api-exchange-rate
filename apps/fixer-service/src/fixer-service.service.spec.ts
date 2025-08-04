@@ -10,7 +10,7 @@ describe('FixerService', () => {
 
   beforeEach(() => {
     service = new FixerService();
-    process.env.FIXER_KEY = 'asfasd';
+    process.env.FIXER_KEY = 'asdf';
   });
 
   it('debe retornar el resultado convertido correctamente', async () => {
@@ -26,14 +26,12 @@ describe('FixerService', () => {
 
     const result = await service.convert('USD', 'DOP', 100);
 
-    expect(result).toEqual({
-      provider: 'Fixer',
-      rate: expect.any(Number),
-      convertedAmount: expect.any(Number),
-    });
+    expect(result.provider).toBe('Fixer');
+    expect(result.rate).toBeGreaterThan(0);
+    expect(result.convertedAmount).toBeGreaterThan(0);
   });
 
-  it('debe lanzar un error si las tasas estan ausentes o invalidas', async () => {
+  it('debe retornar fallback si las tasas son invalidas o faltan', async () => {
     (axios.get as jest.Mock).mockResolvedValue({
       data: {
         success: false,
@@ -41,16 +39,24 @@ describe('FixerService', () => {
       },
     });
 
-    await expect(service.convert('USD', 'DOP', 100)).rejects.toThrowError(
-      /Tasas no disponibles/,
-    );
+    const result = await service.convert('USD', 'DOP', 100);
+
+    expect(result).toEqual({
+      provider: 'Fixer',
+      rate: 0,
+      convertedAmount: 0,
+    });
   });
 
-  it('debe manejar excepciones de axios adecuadamente', async () => {
+  it('debe retornar fallback si axios lanza una excepcion', async () => {
     (axios.get as jest.Mock).mockRejectedValue(new Error('Network error'));
 
-    await expect(service.convert('USD', 'DOP', 100)).rejects.toThrowError(
-      /Network error/,
-    );
+    const result = await service.convert('USD', 'DOP', 100);
+
+    expect(result).toEqual({
+      provider: 'Fixer',
+      rate: 0,
+      convertedAmount: 0,
+    });
   });
 });

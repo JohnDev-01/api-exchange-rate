@@ -1,8 +1,8 @@
-import { Controller } from '@nestjs/common';
+import { Controller, Get, Query } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { FixerService } from './fixer-service.service';
 
-@Controller()
+@Controller('fixer')
 export class FixerServiceController {
   constructor(private readonly fixerService: FixerService) {}
 
@@ -16,5 +16,14 @@ export class FixerServiceController {
     },
   ) {
     return this.fixerService.convert(payload.from, payload.to, payload.amount);
+  }
+
+  @Get('convert')
+  async httpConvert(
+    @Query('from') from: string,
+    @Query('to') to: string,
+    @Query('amount') amount: string,
+  ) {
+    return this.fixerService.convert(from, to, Number(amount));
   }
 }
